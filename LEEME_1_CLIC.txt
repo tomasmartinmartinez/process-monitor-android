@@ -1,0 +1,73 @@
+# 🚀 Guía rápida (un solo clic)
+
+## Windows
+1. Descomprime `ProcessMonitor.zip`
+2. Entra en la carpeta `ProcessMonitor`
+3. Doble clic en **`_1CLICK_subir_y_descargar.bat`**
+4. Sigue las instrucciones en pantalla (abrir navegador, autorizar GitHub)
+
+## Linux / macOS
+```bash
+cd ProcessMonitor
+./_1CLICK_subir_y_descargar.sh
+```
+
+---
+
+## ¿Qué hace el script automáticamente?
+
+1. ✅ Comprueba si tienes Python instalado (si no, te avisa)
+2. ✅ Comprueba/instala GitHub CLI (`gh`)
+3. ✅ Te autentica en GitHub (abre el navegador, autorizas 1 vez)
+4. ✅ Crea un repositorio público `process-monitor-android` en tu cuenta
+5. ✅ Sube el código del proyecto
+6. ✅ Lanza la compilación en GitHub Actions (en la nube)
+7. ✅ Cada 20 segundos pregunta "¿ya está?"
+8. ✅ Cuando termina (5-10 min), descarga el APK automáticamente
+9. ✅ Te lo deja en la carpeta como `app-debug.apk`
+
+## Requisitos mínimos
+
+- **Python 3.8+** → https://www.python.org/downloads/
+  (Marca "Add Python to PATH" al instalar)
+- **Cuenta de GitHub** → https://github.com (gratis)
+- **Conexión a Internet**
+- ⚠ **NO necesitas Android Studio** ⚠
+- ⚠ **NO necesitas instalar JDK/Android SDK** ⚠
+
+## ¿Cuánto tarda?
+
+| Paso | Tiempo |
+|---|---|
+| Autenticación GitHub (1 sola vez) | 2 min |
+| Crear repo + subir código | 30 s |
+| Compilación en GitHub Actions | 5-10 min |
+| Descarga del APK | 5 s |
+| **Total** | **~7-12 min** |
+
+## ¿Qué pasa si algo falla?
+
+- **"gh: command not found"**: el script intenta instalarlo. Si no puede,
+  descárgalo de https://cli.github.com y vuelve a ejecutar.
+- **Compilación fallida**: el script te abrirá la URL de GitHub con los logs.
+  Lee los logs y corrige el error; normalmente solo vuelve a ejecutar.
+- **"Already authenticated"**: el script lo detecta y sigue adelante.
+
+## Cuando ya tienes el APK
+
+Transfiere `app-debug.apk` a tu móvil (USB, Drive, Telegram, etc.) y ábrelo
+desde el gestor de archivos del móvil → Instalar.
+
+Si te pide permiso de "Orígenes desconocidos":
+- `Ajustes` → `Seguridad` o `Privacidad` → activa "Instalar apps desconocidas"
+para tu app de archivos.
+
+## (Opcional) Ver TODOS los procesos del sistema
+
+Conecta el móvil por USB con depuración USB activada y ejecuta una sola vez:
+
+```bash
+adb shell pm grant com.example.processmonitor android.permission.DUMP
+```
+
+Sin esto, la app solo verá tus propios procesos.

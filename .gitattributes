@@ -1,0 +1,22 @@
+# Control de finales de línea: mantiene LF en el repo, permite CRLF en checkout
+* text=auto eol=lf
+
+# Ficheros binarios que NUNCA deben convertirse
+*.jar   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.zip   binary
+*.apk   binary
+*.keystore binary
+*.jks   binary
+
+# Scripts de shell SIEMPRE con LF (sin esto, fallan en Linux)
+*.sh    text eol=lf
+gradlew text eol=lf
+
+# Ficheros Windows SIEMPRE con CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf

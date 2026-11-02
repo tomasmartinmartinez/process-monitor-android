@@ -1,0 +1,109 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+# Permisos necesarios para que gh CLI funcione dentro del runner
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compilar APK Debug
+    runs-on: ubuntu-latest
+
+    env:
+      # Le decimos a Gradle dónde está el SDK preinstalado en el runner
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+    steps:
+      - name: 1. Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 3. Verificar Android SDK preinstalado y aceptar licencias
+        # NO usamos android-actions/setup-android porque tiene un bug que
+        # intenta instalar el paquete 'tools' (eliminado por Google en 2024).
+        # En su lugar, usamos el SDK que ya viene preinstalado en ubuntu-latest
+        # y aceptamos todas las licencias manualmente.
+        run: |
+          echo "=== Android SDK preinstalado en: $ANDROID_HOME ==="
+          ls -la $ANDROID_HOME/ 2>&1 | head -20
+          echo ""
+          echo "=== Platforms disponibles ==="
+          ls $ANDROID_HOME/platforms/ 2>/dev/null || echo "  (carpeta platforms no existe)"
+          echo ""
+          echo "=== Build-tools disponibles ==="
+          ls $ANDROID_HOME/build-tools/ 2>/dev/null || echo "  (carpeta build-tools no existe)"
+          echo ""
+          echo "=== Aceptando todas las licencias SDK ==="
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          echo "  Licencias aceptadas."
+
+      - name: 4. Instalar paquetes SDK necesarios (si faltan)
+        # Instalar platforms y build-tools por si el runner no los tuviera.
+        # Si ya están instalados, sdkmanager no hace nada.
+        run: |
+          echo "=== Instalando platforms;android-34 ==="
+          yes | sdkmanager "platforms;android-34" 2>&1 | tail -5 || true
+          echo ""
+          echo "=== Instalando build-tools;34.0.0 ==="
+          yes | sdkmanager "build-tools;34.0.0" 2>&1 | tail -5 || true
+          echo ""
+          echo "=== Verificando instalación ==="
+          ls $ANDROID_HOME/platforms/ 2>/dev/null | grep android-34 || echo "  android-34 NO encontrado"
+          ls $ANDROID_HOME/build-tools/ 2>/dev/null | grep 34.0.0 || echo "  build-tools 34.0.0 NO encontrado"
+
+      - name: 5. Arreglar finales de línea (CRLF -> LF) en scripts de Gradle
+        # Windows convierte LF a CRLF al descomprimir el ZIP, y eso rompe
+        # el script gradlew en Linux. Forzamos LF.
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq dos2unix
+          dos2unix gradlew gradlew.bat gradle/wrapper/gradle-wrapper.properties 2>/dev/null || true
+          chmod +x ./gradlew
+
+      - name: 6. Crear local.properties apuntando al SDK
+        # Gradle busca ANDROID_HOME en local.properties o variables de entorno.
+        # Lo creamos como safety net por si la variable no llega bien.
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "Contenido de local.properties:"
+          cat local.properties
+
+      - name: 7. Verificar wrapper de Gradle
+        run: |
+          ls -la gradle/wrapper/
+          file gradle/wrapper/gradle-wrapper.jar
+          ./gradlew --version
+
+      - name: 8. Compilar APK Debug
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: 9. Subir APK como artifact descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProcessMonitor-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 10. (Si falló) Subir logs para diagnóstico
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-fallo
+          path: |
+            app/build/reports/
+            build/reports/
+            /home/runner/.gradle/caches/transforms-*.log
+          retention-days: 7
+          if-no-files-found: ignore
